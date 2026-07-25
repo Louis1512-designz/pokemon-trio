@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pokémon Trio SoulLink Tracker</title>
+<style>
+:root{--bg:#111827;--card:#1f2937;--line:#374151;--accent:#3b82f6;--text:#f3f4f6}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#0b1220,#111827);color:var(--text);font-family:Segoe UI,Arial,sans-serif}
+.wrap{max-width:1300px;margin:auto;padding:28px}
+.card{background:rgba(31,41,55,.96);border:1px solid #2e3b4d;border-radius:18px;padding:20px;margin:18px 0;box-shadow:0 12px 35px rgba(0,0,0,.35)}
+h1{margin:0;text-align:center}
+.sub{opacity:.8;text-align:center;margin:8px 0 0}
+.players{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+input{width:100%;padding:10px;border-radius:10px;border:1px solid #49566b;background:#111827;color:#fff}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid var(--line);padding:8px}
+th{background:#2563eb;position:sticky;top:0}
+tr:nth-child(even){background:#192231}
+.level td:first-child{text-align:center;font-weight:bold}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+button{background:var(--accent);border:none;border-radius:10px;padding:10px 14px;color:#fff;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+.check{transform:scale(1.2)}
+@media(max-width:800px){.players{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+<h1>🎮 Pokémon Trio SoulLink Tracker</h1>
+<p class="sub">Automatisches Speichern • Eine Datei • Lokal oder Webserver</p>
+<div class="players">
+<input id="p1" placeholder="Spieler 1">
+<input id="p2" placeholder="Spieler 2">
+<input id="p3" placeholder="Spieler 3">
+</div>
+</div>
+
+<div class="card">
+<h2>🏆 Level Caps</h2>
+<table class="level" id="caps">
+<tr><th>Erledigt</th><th>Arena</th><th>Level Cap</th></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>⚔️ Aktuelles Team</h2>
+<table id="team"></table>
+</div>
+
+<div class="card">
+<h2>📦 Reserve / Box</h2>
+<table id="reserve"></table>
+</div>
+
+<div class="card">
+<div class="toolbar">
+<button onclick="backup()">💾 Backup</button>
+<button onclick="document.getElementById('file').click()">📂 Import</button>
+<button onclick="clearAll()">🗑 Alles löschen</button>
+</div>
+<input type="file" id="file" hidden onchange="restore(event)">
+</div>
+</div>
+<script>
+const caps=[14,22,28,34,39,43,46,50,58];
+const capTable=document.getElementById("caps");
+caps.forEach((lvl,i)=>{
+ let tr=document.createElement("tr");
+ tr.innerHTML=`<td><input class="check" type="checkbox" data-k="cap${i}"></td><td>${i<8?"Arena "+(i+1):"Liga"}</td><td>${lvl}</td>`;
+ capTable.appendChild(tr);
+});
+function build(id,rows){
+ const t=document.getElementById(id);
+ t.innerHTML="<tr><th>Route</th><th>Spieler 1</th><th>Spieler 2</th><th>Spieler 3</th></tr>";
+ for(let r=0;r<rows;r++){
+   let tr=document.createElement("tr");
+   for(let c=0;c<4;c++){
+     let td=document.createElement("td");
+     let inp=document.createElement("input");
+     inp.dataset.k=id+"-"+r+"-"+c;
+     td.appendChild(inp); tr.appendChild(td);
+   }
+   t.appendChild(tr);
+ }
+}
+build("team",7);
+build("reserve",20);
+
+function load(){
+ document.querySelectorAll("[data-k]").forEach(e=>{
+   if(e.type==="checkbox"){
+      e.checked=localStorage.getItem(e.dataset.k)==="1";
+      e.onchange=()=>localStorage.setItem(e.dataset.k,e.checked?"1":"0");
+   }else{
+      e.value=localStorage.getItem(e.dataset.k)||"";
+      e.oninput=()=>localStorage.setItem(e.dataset.k,e.value);
+   }
+ });
+ ["p1","p2","p3"].forEach(id=>{
+   let e=document.getElementById(id);
+   e.value=localStorage.getItem(id)||"";
+   e.oninput=()=>localStorage.setItem(id,e.value);
+ });
+}
+load();
+
+function backup(){
+ let obj={};
+ for(let i=0;i<localStorage.length;i++){
+   let k=localStorage.key(i);obj[k]=localStorage.getItem(k);
+ }
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:"application/json"}));
+ a.download="soullink-backup.json";a.click();
+}
+function restore(ev){
+ const f=ev.target.files[0]; if(!f)return;
+ const fr=new FileReader();
+ fr.onload=()=>{let d=JSON.parse(fr.result);localStorage.clear();for(let k in d)localStorage.setItem(k,d[k]);location.reload();};
+ fr.readAsText(f);
+}
+function clearAll(){
+ if(confirm("Alle Daten löschen?")){localStorage.clear();location.reload();}
+}
+</script>
+</body>
+</html>
